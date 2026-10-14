@@ -28,7 +28,7 @@ Notebook huấn luyện và so sánh các mô hình Deep Learning trên hai bộ
 ### 1. Clone repository
 
 ```bash
-git clone https://github.com/dhm-005/Mnist_NN.git
+git clone https://github.com/dhm-005/Neural_Network_MNIST_and_CIFAR-10.git
 
 cd Mnist_NN
 ```

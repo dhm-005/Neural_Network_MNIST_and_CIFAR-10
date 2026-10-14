@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MNIST - Nhận diện chữ số</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 30px 16px;
+            font-family: Arial, sans-serif;
+            background: #f3f5f9;
+            color: #222;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: auto;
+        }
+
+        h1, h2 {
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 28px;
+        }
+
+        .card {
+            background: white;
+            padding: 24px;
+            margin-bottom: 22px;
+            border-radius: 14px;
+            box-shadow: 0 3px 12px #0000000d;
+        }
+
+        .upload-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        input[type="file"] {
+            padding: 12px;
+            border: 1px dashed #aaa;
+            border-radius: 8px;
+            width: 100%;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .error {
+            padding: 12px;
+            background: #fee2e2;
+            color: #b91c1c;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .result-top {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .preview {
+            text-align: center;
+        }
+
+        .preview img {
+            max-width: 100%;
+            width: 220px;
+            max-height: 220px;
+            object-fit: contain;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 8px;
+            background: #fafafa;
+        }
+
+        .prediction {
+            text-align: center;
+            background: #eff6ff;
+            padding: 22px;
+            border-radius: 12px;
+        }
+
+        .prediction .number {
+            font-size: 68px;
+            font-weight: bold;
+            color: #2563eb;
+            margin: 12px 0;
+        }
+
+        .prediction .percent {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .prediction .note {
+            color: #666;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .probability-row {
+            display: grid;
+            grid-template-columns: 32px 1fr 75px;
+            align-items: center;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .label {
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .bar-bg {
+            background: #e5e7eb;
+            height: 18px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .bar {
+            height: 100%;
+            background: #93c5fd;
+            border-radius: 10px;
+        }
+
+        .bar.top {
+            background: #2563eb;
+        }
+
+        .percent-label {
+            text-align: right;
+            font-size: 14px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .disclaimer {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        @media (max-width: 550px) {
+            .result-top {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 18px;
+            }
+
+            .probability-row {
+                grid-template-columns: 24px 1fr 65px;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <h1>Nhận diện chữ số MNIST</h1>
+    <p class="subtitle">
+        Upload ảnh để mô hình CNN dự đoán chữ số từ 0 đến 9.
+    </p>
+
+    <div class="card">
+        <h2>Chọn ảnh đầu vào</h2>
+
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <form class="upload-form"
+              method="POST"
+              enctype="multipart/form-data">
+
+            <input
+                type="file"
+                name="image"
+                accept="image/*"
+                required
+            >
+
+            <button type="submit">Nhận diện chữ số</button>
+        </form>
+    </div>
+
+    {% if results is not none %}
+    <div class="card">
+        <h2>Kết quả dự đoán</h2>
+
+        <div class="result-top">
+            <div class="preview">
+                <p>Ảnh đã upload</p>
+                <img src="{{ uploaded_image }}" alt="Ảnh đầu vào">
+            </div>
+
+            <div class="prediction">
+                <div>Chữ số dự đoán</div>
+
+                <div class="number">{{ prediction }}</div>
+
+                <div class="percent">
+                    {{ "%.2f"|format(results[0].probability) }}%
+                </div>
+
+                <div class="note">
+                    Xác suất mô hình gán cho nhãn dự đoán
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Xác suất của từng nhãn</h2>
+
+        {% for item in results %}
+        <div class="probability-row">
+            <div class="label">{{ item.label }}</div>
+
+            <div class="bar-bg">
+                <div
+                    class="bar {% if item.label == prediction %}top{% endif %}"
+                    style="width: {{ item.probability }}%;">
+                </div>
+            </div>
+
+            <div class="percent-label">
+                {{ "%.2f"|format(item.probability) }}%
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% endif %}
+
+    <p class="disclaimer">
+        Các phần trăm là xác suất đầu ra của mô hình CNN, không đảm bảo
+        phản ánh độ chính xác thực tế. Kết quả phụ thuộc vào chất lượng
+        ảnh và mức độ tương đồng với dữ liệu MNIST.
+    </p>
+
+</div>
+</body>
+</html>
